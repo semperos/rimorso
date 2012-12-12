@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Try Rimorso</title>
+    </head>
+    <body>
+        <h3>Use the Javascript console to test Rimorso</h3>
+    </body>
+<script src="lib/rimorso.js"></script>
+<script type="text/javascript">
+var T = Rimorso.T;
+var D = Rimorso.D;
+var two = T('two :: Int -> Int', function(n) { return n*2; });
+console.log("I can multiply", two(4));
+console.log("And now for explosions...");
+two(4.2);
+</script>
+</html>

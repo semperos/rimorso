@@ -1,0 +1,28 @@
+{
+  "name": "rimorso",
+  "version": "0.0.1",
+  "description": "Runtime type contracts for JavaScript, based on Ristretto",
+  "main": "rimorso.js",
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:semperos/rimorso.git"
+  },
+  "keywords": [
+    "contracts",
+    "types",
+    "type_checking",
+    "runtime"
+  ],
+  "author": "Daniel Gregoire <daniel.l.gregoire@gmail.com>",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "docco": "*",
+    "coffee-script": ">= 1.4",
+    "chokidar": "0.5.0",
+    "growl": "1.6.1"
+  }
+}
