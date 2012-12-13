@@ -532,8 +532,21 @@ umd this, ->
       # based on the type spec provided.
       #
       values = spec.split '::'
-      factory = buildContract(values[1].trim())
-      contract = factory(new Label(values[0].trim()))
+      #
+      # Named type spec
+      #
+      if (values.length is 2)
+        name = values[0].trim()
+        type = values[1].trim()
+      #
+      # Type spec for anonymous function
+      #
+      else
+        name = "anonymous"
+        type = spec.trim()
+
+      factory = buildContract(type)
+      contract = factory(new Label(name))
 
       #
       # Return a version of the original function, with
