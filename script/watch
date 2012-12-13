@@ -28,10 +28,14 @@ buildAll = ->
       console.log sep
 
 
-watcher = chokidar.watch 'src', {persistent: true}
+watcher = chokidar.watch 'src', {persistent: true, ignored: /^\./}
+watcher.add 'test'
+
+# Run it once at start; don't use 'add' with chokidar,
+# bc it runs for every add event
+buildAll()
 
 watcher
-  .on('add', buildAll)
   .on('change', buildAll)
   .on('unlink', buildAll)
   .on('error', (error) -> console.log "An error occurred:", error)
