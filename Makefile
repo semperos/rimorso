@@ -18,7 +18,7 @@ clean: clean-docs
 build:
 	coffee -o lib/ -c src/ && coffee -c spec/rimorso_spec.coffee
 
-build-all: docs build
+build-all: build docs
 
 test:
 	mocha spec/rimorso_spec.js
