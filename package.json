@@ -20,7 +20,9 @@
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
-    "docco": "*",
+    "mocha": "1.7.4",
+    "chai": "1.4.0",
+    "docco": "0.4.0",
     "coffee-script": ">= 1.4",
     "chokidar": "0.5.0",
     "growl": "1.6.1"
