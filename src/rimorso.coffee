@@ -13,6 +13,7 @@ umd = (root, factory) ->
 
 # We now call the UMD module, passing in `this` as the `root` and a function that returns our library's exported values as the `factory`.
 umd this, ->
+  #
   # ## Custom Exceptions ##
   #
   # Includes: AbstractMethodError for simulating abstract functions
@@ -23,6 +24,7 @@ umd this, ->
       @message = message or 'You tried to call an abstract method. You must override this method in your sub-class.'
       @name = 'AbstractMethodError'
 
+  #
   # ## Labels ##
   #
   # Objects that represent the functions being type checked.
@@ -61,34 +63,6 @@ umd this, ->
       label.polarity = !@polarity
       label
 
-  # ## Contracts ##
-  #
-  # The vehicle of type checking itself.
-  #
-  class Contract
-    constructor: (label) ->
-      @label = label
-
-    restrict: ->
-      throw new AbstractMethodError
-
-    relax: ->
-      throw new AbstractMethodError
-
-    #
-    # The `fail` function is called whenever type checking
-    # fails. It uses the String representation of its label
-    # for detailed error messaging.
-    #
-    fail: ->
-      throw TypeError(@label.toString())
-
-    #
-    # TODO: This function does not appear to be used.
-    #
-    swap: ->
-      @label.swap()
-
   #
   # Together with is_ below, this needs to be tested
   # for cross-platform compatibility and any edge cases
@@ -121,6 +95,29 @@ umd this, ->
   #
   # ## Contracts ##
   #
+
+  #
+  # ## Contracts ##
+  #
+  # The vehicle of type checking itself.
+  #
+  class Contract
+    constructor: (label) ->
+      @label = label
+
+    restrict: ->
+      throw new AbstractMethodError
+
+    relax: ->
+      throw new AbstractMethodError
+
+    #
+    # The `fail` function is called whenever type checking
+    # fails. It uses the String representation of its label
+    # for detailed error messaging.
+    #
+    fail: ->
+      throw TypeError(@label.toString())
 
   #
   # ### Integer Contract ###
