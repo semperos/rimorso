@@ -13,15 +13,15 @@ clean-docs:
 	-rm -rf docs/
 
 clean: clean-docs
-	-rm -rf lib/ spec/*.js
+	-rm -rf lib/
 
 build:
-	coffee -o lib/ -c src/ && coffee -c spec/rimorso_spec.coffee
+	coffee -o lib/ -c src/
 
-build-all: build docs
+build-all: build test docs
 
 test:
-	mocha spec/rimorso_spec.js
+	mocha
 
 dist: clean init docs build test
 
