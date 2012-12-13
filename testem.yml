@@ -1,5 +1,5 @@
 launchers:
   Node:
-    command: "mocha tests.js"
+    command: "mocha"
 launch_in_dev:
   - Node
