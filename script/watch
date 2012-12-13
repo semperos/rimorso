@@ -5,15 +5,28 @@ sys = require 'sys'
 exec = require('child_process').exec
 growl = require 'growl'
 
-puts = (error, stdout, stderr) -> sys.puts(stdout)
+puts = (error, stdout, stderr) ->
+  sys.puts(stdout); sys.puts(stderr);
 
 buildAll = ->
-  ret = exec("make build-all", puts)
-  title = 'Build Status'
-  if ret.exitCode is null
-    growl '✓✓✓ Success ✓✓✓', {title: title}
-  else
-    growl '⌦ FAILURE ⌫', {title: title}
+  exec "make build-all", (err, stdout, stderr) ->
+    title = 'Build Status'
+    h = "----------------------------------------"
+    sep = h + h
+    if err?.code > 0
+      fail = '⌦⌦⌦ FAILURE ⌫⌫⌫'
+      growl fail, {title: title}
+      console.log fail
+      console.log err
+      console.log stderr
+      console.log sep
+    else
+      succeed = '✓✓✓ Success ✓✓✓'
+      growl succeed, {title: title}
+      console.log succeed
+      console.log stdout
+      console.log sep
+
 
 watcher = chokidar.watch 'src', {persistent: true}
 
