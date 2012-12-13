@@ -1,0 +1,5 @@
+--compilers coffee:coffee-script
+--ui bdd
+--reporter dot
+--colors
+--growl
