@@ -28,7 +28,7 @@ buildAll = ->
       console.log sep
 
 
-watcher = chokidar.watch 'src', {persistent: true, ignored: /^\./}
+watcher = chokidar.watch 'src', {persistent: true, ignored: /(^\.|.*\.js$)/}
 watcher.add 'test'
 
 # Run it once at start; don't use 'add' with chokidar,
