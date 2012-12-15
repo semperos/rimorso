@@ -1,5 +1,12 @@
+test_page: "test/runner.html"
+src_files: ["lib/*.js","test/*.js"]
 launchers:
   Node:
-    command: "mocha"
+    command: "mocha -R tap test/*_test.js"
+    protocol: "tap"
 launch_in_dev:
   - Node
+  - Chrome
+launch_in_ci:
+  - Node
+  - Chrome

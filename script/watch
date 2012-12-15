@@ -17,7 +17,8 @@ buildAll = ->
       fail = '⌦⌦⌦ FAILURE ⌫⌫⌫'
       growl fail, {title: title}
       console.log fail
-      console.log err
+      # console.log err
+      console.log stdout
       console.log stderr
       console.log sep
     else

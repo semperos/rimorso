@@ -1,9 +1,11 @@
-chai = require 'chai'
+# See bootstrap.coffee
+if (typeof exports is 'object')
+  R = root.Rimorso
+else
+  R = window.Rimorso
 
-assert = chai.assert
-expect = chai.expect
-should = chai.should()
-
-describe 'First test', ->
-  it 'should work', ->
-    "foo".should.equal "foo"
+describe 'Housekeeping', ->
+  describe 'Custom errors', ->
+    it "should provide a custom error class for abstract methods", ->
+      err = new R.AbstractMethodError
+      err.should.be.instanceOf Error

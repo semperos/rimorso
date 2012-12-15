@@ -1,5 +1,9 @@
-PATH := ./node_modules/.bin:${PATH}
+PATH	:= ./node_modules/.bin:${PATH}
 coffees := $(wildcard src/*.coffee)
+coffee	:= ./node_modules/.bin/coffee
+mocha	:= ./node_modules/.bin/mocha
+watch	:= ./script/watch
+test	:= ./node_modules/.bin/testem ci
 
 .PHONY : deps clean-docs clean build build-all test all install dist publish
 
@@ -23,17 +27,17 @@ clean: clean-docs
 
 build:
 	@echo "[x] Compiling src and test CoffeeScript to JavaScript..."
-	coffee -o lib/ -c src/
-	coffee -c test/
+	@$(coffee) -o lib/ -c src/
+	@$(coffee) -c test/
 
 test: build
 	@echo "[x] Running tests..."
-	mocha
+	@$(test)
 
 # Watches fs and calls 'build-all'
-watch:
+watch: clean
 	@echo "[x] Starting watcher..."
-	./script/watch
+	@$(watch)
 
 build-all: build test docs
 

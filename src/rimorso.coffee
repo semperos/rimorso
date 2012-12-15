@@ -14,23 +14,153 @@ umd = (root, factory) ->
 # We now call the UMD module, passing in `this` as the `root` and a function that returns our library's exported values as the `factory`.
 umd this, ->
   #
-  # ## Custom Exceptions ##
+  # ## Housekeeping ##
   #
-  # Includes: AbstractMethodError for simulating abstract functions
+
+  #
+  # ### Custom Errors ###
+  #
+
+  # AbstractMethodError for simulating abstract functions
   # attached to object prototypes.
   #
   class AbstractMethodError extends Error
     constructor: (message) ->
-      @message = message or 'You tried to call an abstract method. You must override this method in your sub-class.'
+      @message = message or 'You tried to call an abstract method. You must override this method in your subclass.'
       @name = 'AbstractMethodError'
+
+  #
+  # ### Builtin Classes/Types ###
+  #
+
+  # Taken from jQuery, we list out the builtin classes...
+  builtinClasses = ["Boolean", "Number", "String", "Function", "Array", "Date", "RegExp", "Object", "Error", "Null", "Undefined"]
+  # ...And then build out a map of class representations to types, e.g., `[object Number]` to `number`.
+  class2type = {}
+  for klass in builtinClasses
+    class2type[ "[object #{klass}]" ] = klass.toLowerCase()
+
+  # Taken from jQuery, use a plain object to get the definitions
+  # of `toString` and `hasOwnProperty` used below.
+  #
+  core_toString = class2type.toString
+  core_hasOwn = class2type.hasOwnProperty
+
+  #
+  # ### Type Comparison ###
+  #
+  class Is
+    #
+    # Get the `[[Class]]` of an object.
+    #
+    # This is the `Object.prototype.toString.call(obj)`
+    # method of determining an object's class. Amongst
+    # available methods, this is generally the most reliable.
+    #
+    @class: (obj) ->
+      core_toString.call(obj)
+
+    #
+    # Return the type of an object.
+    #
+    # Taken from jQuery. At its root, this is just
+    # Object.prototype.toString.call(obj), but with lower-casing
+    # and consideration of null/undefined values.
+    #
+    @type: (obj) =>
+      if obj is null
+        ret = String(obj)
+      else
+        ret = class2type[ @class(obj) ]
+      ret or "object"
+
+    #
+    # #### Convenience Methods ####
+    #
+    # Yes, we could have dynamically defined these,
+    # but for an API that's not very clear,
+    # and at least one of these already has exceptional
+    # behavior for cross-platform compatibility.
+    #
+
+    #
+    # Is the object `true` or `false`?
+    #
+    @isBoolean: (obj) =>
+      @type(obj) is 'boolean'
+
+    #
+    # Is the object a number?
+    #
+    @isNumber: (obj) =>
+      @type(obj) is 'number'
+
+    #
+    # Is the object a string?
+    #
+    @isString: (obj) =>
+      @type(obj) is 'string'
+
+    #
+    # Is the object a function?
+    #
+    @isFunction: (obj) =>
+      @type(obj) is 'function'
+
+    #
+    # Is the object an array?
+    #
+    @isArray: (Array.isArray) or (obj) =>
+      @type(obj) is 'array'
+
+    #
+    # Is the object a date?
+    #
+    @isDate: (obj) =>
+      @type(obj) is 'date'
+
+    #
+    # Is the object a regular expression?
+    #
+    @isRegExp: (obj) =>
+      @type(obj) is 'regexp'
+
+    #
+    # This matches for everything that doesn't match the other type methods.
+    #
+    @isObject: (obj) =>
+      @type(obj) is 'object'
+
+    #
+    # Is the object an error?
+    #
+    @isError: (obj) =>
+      @type(obj) is 'error'
+
+    #
+    # Is the object null?
+    #
+    @isNull: (obj) =>
+      (@type(obj) is 'null') or (obj is null)
+
+    #
+    # Is the object undefined?
+    #
+    @isUndefined: (obj) =>
+      (@type(obj) is 'undefined') or
+        (typeof(obj) is undefined) or
+        (@class(obj) is '[object DOMWindow]' and typeof(obj) is 'undefined')
 
   #
   # ## Labels ##
   #
+
+  #
   # Objects that represent the functions being type checked.
-  # The name field is the name of the function, the polarity is
-  # (?), and the reason field contains more detailed error messaging
-  # when something goes wrong.
+  # The name field is the name of the function, the polarity determines
+  # if a type error occurs in the domain (the inputs) or the range (the output)
+  # of a function, and finally the reason field contains more detailed error messaging
+  # for type errors.
   #
   class Label
     #
@@ -63,43 +193,26 @@ umd this, ->
       label.polarity = !@polarity
       label
 
-  #
-  # Together with is_ below, this needs to be tested
-  # for cross-platform compatibility and any edge cases
-  # that we can handle here.
-  #
-  getClass = (obj) ->
-    Object.prototype.toString.call(obj).slice(8, -1)
+    setReason: (value, type) =>
+      # Use default message format if type is provided
+      if type?
+        @reason =
+          """
 
-  #
-  # This function needs *serious* consideration for cross-platform
-  # compatibility.
-  #
-  is_ = (type, obj) ->
-    klass = getClass obj
-    objNotNull = obj isnt null
-    # PhantomJS gives klass of `DOMWindow` for undefined...
-    if (type is 'Undefined' and klass is 'DOMWindow')
-      objNotNull and (typeof obj) is 'undefined'
-    else
-      objNotNull and klass is type
-
-  formatFailMsg = (value, type) ->
-    """
-
-    Value: #{value}
-    Expected: #{type}
-    Actual: #{getClass(value)}
-    """
+          Value: #{value}
+          Expected: #{type}
+          Actual: #{Is.getTypeOf(value)}
+          """
+      # Else `value` is simply a string to be set directly
+      else
+        @reason = value
 
   #
   # ## Contracts ##
   #
 
   #
-  # ## Contracts ##
-  #
-  # The vehicle of type checking itself.
+  # An abstract definition for all type contracts.
   #
   class Contract
     constructor: (label) ->
@@ -553,3 +666,5 @@ umd this, ->
       contract.restrict(value)
 
     @D: -> console.log "Algebraic datatypes"
+    @Is: Is
+    @AbstractMethodError: AbstractMethodError
