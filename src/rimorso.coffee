@@ -51,14 +51,33 @@ umd this, ->
   #
   class Is
     #
-    # Get the `[[Class]]` of an object.
+    # Get the `[[Class]]` of a data structure. This works on
+    # any JavaScript data structure.
     #
     # This is the `Object.prototype.toString.call(obj)`
     # method of determining an object's class. Amongst
     # available methods, this is generally the most reliable.
     #
-    @class: (obj) ->
+    @getClass: (obj) ->
       core_toString.call(obj)
+
+    #
+    # For objects, get the "class" (prototype).
+    #
+    # This checks if Object.getPrototypeOf is available,
+    # and if not will fall back to using either __proto__
+    # or constructor.prototype. To understand the
+    # ramifications of this, you are encouraged to read
+    # the MDN docs as well as John Resig's post
+    # on the subject.
+    #
+    @getPrototype: (obj) ->
+      if (typeof Object.getPrototypeOf is 'function')
+        Object.getPrototypeOf obj
+      else if (typeof 'test'.__proto__ is 'object')
+        obj.__proto__
+      else
+        obj.constructor.prototype
 
     #
     # Return the type of an object.
@@ -67,11 +86,11 @@ umd this, ->
     # Object.prototype.toString.call(obj), but with lower-casing
     # and consideration of null/undefined values.
     #
-    @type: (obj) =>
-      if obj is null
+    @getType: (obj) =>
+      if obj == null
         ret = String(obj)
       else
-        ret = class2type[ @class(obj) ]
+        ret = class2type[ @getClass(obj) ]
       ret or "object"
 
     #
@@ -87,69 +106,69 @@ umd this, ->
     # Is the object `true` or `false`?
     #
     @isBoolean: (obj) =>
-      @type(obj) is 'boolean'
+      @getType(obj) is 'boolean'
 
     #
     # Is the object a number?
     #
     @isNumber: (obj) =>
-      @type(obj) is 'number'
+      @getType(obj) is 'number'
 
     #
     # Is the object a string?
     #
     @isString: (obj) =>
-      @type(obj) is 'string'
+      @getType(obj) is 'string'
 
     #
     # Is the object a function?
     #
     @isFunction: (obj) =>
-      @type(obj) is 'function'
+      @getType(obj) is 'function'
 
     #
     # Is the object an array?
     #
     @isArray: (Array.isArray) or (obj) =>
-      @type(obj) is 'array'
+      @getType(obj) is 'array'
 
     #
     # Is the object a date?
     #
     @isDate: (obj) =>
-      @type(obj) is 'date'
+      @getType(obj) is 'date'
 
     #
     # Is the object a regular expression?
     #
     @isRegExp: (obj) =>
-      @type(obj) is 'regexp'
+      @getType(obj) is 'regexp'
 
     #
     # This matches for everything that doesn't match the other type methods.
     #
     @isObject: (obj) =>
-      @type(obj) is 'object'
+      @getType(obj) is 'object'
 
     #
     # Is the object an error?
     #
     @isError: (obj) =>
-      @type(obj) is 'error'
+      @getType(obj) is 'error'
 
     #
     # Is the object null?
     #
     @isNull: (obj) =>
-      (@type(obj) is 'null') or (obj is null)
+      (@getType(obj) is 'null') or (obj is null)
 
     #
     # Is the object undefined?
     #
     @isUndefined: (obj) =>
-      (@type(obj) is 'undefined') or
+      (@getType(obj) is 'undefined') or
         (typeof(obj) is undefined) or
-        (@class(obj) is '[object DOMWindow]' and typeof(obj) is 'undefined')
+        (@getClass(obj) is '[object DOMWindow]' and typeof(obj) is 'undefined')
 
   #
   # ## Labels ##
