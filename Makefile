@@ -1,5 +1,6 @@
 PATH	:= ./node_modules/.bin:${PATH}
 coffees := $(wildcard src/*.coffee)
+test-coffees = := $(wildcard src=test/*_test.coffee)
 coffee	:= ./node_modules/.bin/coffee
 mocha	:= ./node_modules/.bin/mocha
 watch	:= ./script/watch
@@ -28,7 +29,7 @@ clean: clean-docs
 build:
 	@echo "[x] Compiling src and test CoffeeScript to JavaScript..."
 	@$(coffee) -o lib/ -c src/
-	@$(coffee) -c test/
+	@$(coffee) -o test/ -c src-test/
 
 test: build
 	@echo "[x] Running tests..."
