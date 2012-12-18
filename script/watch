@@ -30,7 +30,7 @@ buildAll = ->
 
 
 watcher = chokidar.watch 'src', {persistent: true, ignored: /(^\.|.*\.js$)/}
-watcher.add 'test'
+watcher.add 'src-test'
 
 # Run it once at start; don't use 'add' with chokidar,
 # bc it runs for every add event
