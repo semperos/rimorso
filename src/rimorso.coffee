@@ -38,7 +38,7 @@ umd this, ->
   # ...And then build out a map of class representations to types, e.g., `[object Number]` to `number`.
   class2type = {}
   for klass in builtinClasses
-    class2type[ "[object #{klass}]" ] = klass.toLowerCase()
+    class2type[ "[object #{klass}]" ] = klass
 
   # Taken from jQuery, use a plain object to get the definitions
   # of `toString` and `hasOwnProperty` used below.
@@ -91,7 +91,7 @@ umd this, ->
         ret = String(obj)
       else
         ret = class2type[ @getClass(obj) ]
-      ret or "object"
+      ret or "Object"
 
     #
     # #### Convenience Methods ####
@@ -103,71 +103,77 @@ umd this, ->
     #
 
     #
+    # Chaining methods for "fluent" API
+    #
+    @a: @
+    @an: @
+
+    #
     # Is the object `true` or `false`?
     #
-    @isBoolean: (obj) =>
-      @getType(obj) is 'boolean'
+    @boolean: (obj) =>
+      @getType(obj) is 'Boolean'
 
     #
     # Is the object a number?
     #
-    @isNumber: (obj) =>
-      @getType(obj) is 'number'
+    @number: (obj) =>
+      @getType(obj) is 'Number'
 
     #
     # Is the object a string?
     #
-    @isString: (obj) =>
-      @getType(obj) is 'string'
+    @string: (obj) =>
+      @getType(obj) is 'String'
 
     #
     # Is the object a function?
     #
-    @isFunction: (obj) =>
-      @getType(obj) is 'function'
+    @function: (obj) =>
+      @getType(obj) is 'Function'
 
     #
     # Is the object an array?
     #
-    @isArray: (Array.isArray) or (obj) =>
-      @getType(obj) is 'array'
+    @array: (Array.isArray) or (obj) =>
+      @getType(obj) is 'Array'
 
     #
     # Is the object a date?
     #
-    @isDate: (obj) =>
-      @getType(obj) is 'date'
+    @date: (obj) =>
+      @getType(obj) is 'Date'
 
     #
     # Is the object a regular expression?
     #
-    @isRegExp: (obj) =>
-      @getType(obj) is 'regexp'
+    @regexp: (obj) =>
+      @getType(obj) is 'RegExp'
 
     #
     # This matches for everything that doesn't match the other type methods.
     #
-    @isObject: (obj) =>
-      @getType(obj) is 'object'
+    @object: (obj) =>
+      @getType(obj) is 'Object'
 
     #
     # Is the object an error?
     #
-    @isError: (obj) =>
-      @getType(obj) is 'error'
+    @error: (obj) =>
+      @getType(obj) is 'Error'
 
     #
     # Is the object null?
     #
-    @isNull: (obj) =>
-      (@getType(obj) is 'null') or (obj is null)
+    @null: (obj) =>
+      @getType(obj) is 'null'
 
     #
     # Is the object undefined?
     #
-    @isUndefined: (obj) =>
-      (@getType(obj) is 'undefined') or
-        (typeof(obj) is undefined) or
+    @undefined: (obj) =>
+      (@getType(obj) is 'Undefined') or
+        (typeof(obj) is 'undefined') or
         (@getClass(obj) is '[object DOMWindow]' and typeof(obj) is 'undefined')
 
   #
@@ -176,10 +182,10 @@ umd this, ->
 
   #
   # Objects that represent the functions being type checked.
-  # The name field is the name of the function, the polarity determines
-  # if a type error occurs in the domain (the inputs) or the range (the output)
-  # of a function, and finally the reason field contains more detailed error messaging
-  # for type errors.
+  # The name field is the name of the function; the polarity determines
+  # where a type error occurred in the chain of curried functions that comprise
+  # a function definition; and finally the reason field contains more detailed
+  # error messaging for type errors.
   #
   class Label
     #
@@ -218,9 +224,9 @@ umd this, ->
         @reason =
           """
 
-          Value: #{value}
-          Expected: #{type}
-          Actual: #{Is.getTypeOf(value)}
+          Value: #{value},
+          Expected: #{type},
+          Actual: #{Is.getType(value)}.
           """
       # Else `value` is simply a string to be set directly
       else
@@ -264,13 +270,13 @@ umd this, ->
     # @Override `Contract.restrict`
     #
     restrict: (x) ->
-      if (is_('Number', x) and Math.round(x) is x)
+      if (Is.a.number(x) and Math.round(x) is x)
         return x
-      else if (not is_('Number', x))
-        @label.reason = formatFailMsg x, 'Number'
+      else if (not Is.number(x))
+        @label.setReason x, 'Number'
         @fail()
       else
-        @label.reason = formatFailMsg x, 'Integer'
+        @label.setReason x, 'Integer'
         @fail()
 
     #
@@ -297,10 +303,10 @@ umd this, ->
     # @Override `Contract.restrict`
     #
     restrict: (x) ->
-      if (is_('Number', x))
+      if (Is.a.number x)
         return x
       else
-        @label.reason = formatFailMsg x, 'Number'
+        @label.setReason x, 'Number'
         @fail()
 
     #
@@ -323,10 +329,10 @@ umd this, ->
     # @Override `Contract.restrict`
     #
     restrict: (x) ->
-      if (is_('String', x))
+      if (Is.a.string x)
         return x
       else
-        @label.reason = formatFailMsg x, 'String'
+        @label.setReason x, 'String'
         @fail()
 
     #
@@ -343,6 +349,9 @@ umd this, ->
 
   class EmptyContract extends Contract
   class ObjectContract extends Contract
+  class MaybeContract extends Contract
+  class MaybeContractFactory
+  class VariableContractFactoryPlaceholder
 
   #
   # ### Function Contract ###
@@ -368,8 +377,8 @@ umd this, ->
     # specified, the number of arguments is predicted (because JavaScript does not enforce how many arguments are passed to a function) and used.
     #
     restrict: (f, numArgs) ->
-      unless (is_('Function', f))
-        @label.reason = formatFailMsg(f, 'function')
+      unless (Is.a.function f)
+        @label.setReason f, 'function'
         @fail()
       #
       # Only add an extra layer if:
@@ -430,7 +439,7 @@ umd this, ->
           # Fail if empty function called with any args
           #
           if (@domain instanceof EmptyContract) and args.length > 1
-            @label.reason = 'The function was called with ' + value + ' but should have been called with zero arguments.'
+            @label.setReason('The function was called with ' + value + ' but should have been called with zero arguments.')
             @fail()
           restOfArgs = args.slice(1)
           result = @range.restrict(f(@domain.relax(x)))
@@ -451,8 +460,8 @@ umd this, ->
     # @Override `Contract.relax`
     #
     relax: (f, numArgs) ->
-      if (not is_('Function', f))
-        @label.reason = formatFailMsg(f, 'function')
+      unless (Is.a.function(f))
+        @label.setReason f, 'function'
         @fail()
       if (@range instanceof FunctionContract) and
            (not @domain instanceof EmptyContract) and
@@ -477,7 +486,7 @@ umd this, ->
           # Rest of the args are captured and we continue to apply
           # arguments in order to preserve identical behavior in currying.
           if (@domain instanceof EmptyContract) and (args.length > 1)
-            @label.reason = 'The function was called with ' + value + ' but should have been called with zero arguments.'
+            @label.setReason('The function was called with ' + value + ' but should have been called with zero arguments.')
             @fail()
           restOfArgs = args.slice(1)
           result = @range.relax(f(@domain.restrict(x)))
@@ -514,6 +523,117 @@ umd this, ->
         throw TypeError("Error creating typedef for #{label} - using reserved word")
       @typedefs[label] = typedef
 
+  class SpecParser
+    constructor: (input, pos = 0) ->
+      @input = input
+      @pos = pos
+
+    parse: ->
+      result = undefined
+      while @pos < @input.length
+        if @input[@pos] is ")" or @input[@pos] is "]" or @input[@pos] is ">"
+          @pos += 1
+          return result
+        return result  if @input[@pos] is "," or @input[@pos] is "}"
+        result = @parseHead()
+      result
+
+    parseKeyVal: ->
+      name = @input[@pos++]
+      @pos += 1
+      val = @parse()
+      {name: name, contract: val}
+
+    parseObject: ->
+      record = []
+
+      # Allow empty record contract
+      unless @input[@pos + 1] is "}"
+        until @input[@pos] is "}"
+          @pos += 1
+          record.push @parseKeyVal()
+      @pos += 1
+      name = undefined
+      if @input[@pos] is "@"
+        @pos += 1
+        name = @input[@pos]
+        @pos += 1
+      ObjectContractFactory name, record
+
+    parseHead: ->
+      if @input[@pos] is "Int"
+        @pos += 1
+        out = IntegerContractFactory()
+      else if @input[@pos] is "Num"
+        @pos += 1
+        out = NumberContractFactory()
+      else if @input[@pos] is "String"
+        @pos += 1
+        out = StringContractFactory()
+      else if @input[@pos] is "Bool"
+        @pos += 1
+        out = BooleanContractFactory()
+      else if @input[@pos] is "Unit"
+        @pos += 1
+        out = UnitContractFactory()
+      else if @input[@pos] is "0"
+        @pos += 1
+        out = EmptyContractFactory()
+        @pos += 1 # ->
+        range = @parse()
+        out = FunctionContractFactory(EmptyContractFactory(), range)
+      else if @input[@pos] is "("
+        @pos += 1
+        out = @parse()
+      else if @input[@pos] is "["
+        @pos += 1
+        inner = @parse()
+        out = ListContractFactory(inner)
+      else if @input[@pos] is "<"
+        @pos += 1
+        key = StringContractFactory()
+        value = @parse()
+        out = MapContractFactory(key, value)
+      else if @input[@pos] is "{"
+
+        # @Parses and returns one ObjectContractFactory
+        out = @parseObject()
+
+        # Checks for union operator and performs a merge operation if
+        # present and does so until there are no more merges necessary.
+        while @input[@pos] is "U" and @input[@pos + 1] is "{"
+          @pos += 1
+          out = ObjectContractFactoryMerge(out, @parseObject())
+      else if @input[@pos] is "forall"
+        @pos += 1
+        vars = []
+        until @input[@pos] is "."
+          vars.push @input[@pos]
+          @pos += 1
+        @pos += 1
+        out = @parseHead()
+
+        # Inserting a forall for each variable.
+        vars.reverse().forEach (v) ->
+          typeFunc = "function(" + v + ") { return " + out.repr() + "}"
+          typeFunc = eval_("typeFunc = " + typeFunc)
+          out = ForAllContractFactory(typeFunc)
+
+        return out
+      # else if adts[@input[@pos]]?
+      #   out = adts[@input[@pos++]]
+      else
+        out = VariableContractFactoryPlaceholder(@input[@pos])
+        @pos += 1
+      if @input[@pos] is "?"
+        @pos += 1
+        out = MaybeContractFactory(out)
+      if @input[@pos] is "->"
+        @pos += 1
+        range = @parseHead()
+        return FunctionContractFactory(out, range)
+      out
+
   #
   # Build contracts by parsing string inputs for type annotations
   #
@@ -532,112 +652,8 @@ umd this, ->
         input[idx] = Typedef.typedefs[item]
         return buildContract(input.join ' ')
 
-    pos = 0
-
-    parse = ->
-      parseKeyVal = ->
-        name = input[pos++]
-        pos += 1
-        val = parse()
-        {name: name, contract: val}
-      parseHead = ->
-        if input[pos] is "Int"
-          pos += 1
-          out = IntegerContractFactory()
-        else if input[pos] is "Num"
-          pos += 1
-          out = NumberContractFactory()
-        else if input[pos] is "String"
-          pos += 1
-          out = StringContractFactory()
-        else if input[pos] is "Bool"
-          pos += 1
-          out = BooleanContractFactory()
-        else if input[pos] is "Unit"
-          pos += 1
-          out = UnitContractFactory()
-        else if input[pos] is "0"
-          pos += 1
-          out = EmptyContractFactory()
-          pos += 1 # ->
-          range = parse()
-          out = FunctionContractFactory(EmptyContractFactory(), range)
-        else if input[pos] is "("
-          pos += 1
-          out = parse()
-        else if input[pos] is "["
-          pos += 1
-          inner = parse()
-          out = ListContractFactory(inner)
-        else if input[pos] is "<"
-          pos += 1
-          key = StringContractFactory()
-          value = parse()
-          out = MapContractFactory(key, value)
-        else if input[pos] is "{"
-
-          # Parses and returns one ObjectContractFactory
-          parseObject = ->
-            record = []
-
-            # Allow empty record contract
-            unless input[pos + 1] is "}"
-              until input[pos] is "}"
-                pos += 1
-                record.push parseKeyVal()
-            pos += 1
-            name = `undefined`
-            if input[pos] is "@"
-              pos += 1
-              name = input[pos]
-              pos += 1
-            ObjectContractFactory name, record
-
-          out = parseObject()
-
-          # Checks for union operator and performs a merge operation if
-          # present and does so until there are no more merges necessary.
-          while input[pos] is "U" and input[pos + 1] is "{"
-            pos += 1
-            out = ObjectContractFactoryMerge(out, parseObject())
-        else if input[pos] is "forall"
-          pos += 1
-          vars = []
-          until input[pos] is "."
-            vars.push input[pos]
-            pos += 1
-          pos += 1
-          out = parseHead()
-
-          # Inserting a forall for each variable.
-          vars.reverse().forEach (v) ->
-            typeFunc = "function(" + v + ") { return " + out.repr() + "}"
-            typeFunc = eval_("typeFunc = " + typeFunc)
-            out = ForAllContractFactory(typeFunc)
-
-          return out
-        else if adts[input[pos]]?
-          out = adts[input[pos++]]
-        else
-          out = VariableContractFactoryPlaceholder(input[pos])
-          pos += 1
-        if input[pos] is "?"
-          pos += 1
-          out = MaybeContractFactory(out)
-        if input[pos] is "->"
-          pos += 1
-          range = parseHead()
-          return FunctionContractFactory(out, range)
-        out
-      result = `undefined`
-      while pos < input.length
-        if input[pos] is ")" or input[pos] is "]" or input[pos] is ">"
-          pos += 1
-          return result
-        return result  if input[pos] is "," or input[pos] is "}"
-        result = parseHead()
-      result
-    parse()
+    p = new SpecParser(input)
+    p.parse()
 
   # ## Rimorso ##
   #
@@ -686,4 +702,12 @@ umd this, ->
 
     @D: -> console.log "Algebraic datatypes"
     @Is: Is
-    @AbstractMethodError: AbstractMethodError
+    @__impl:
+      AbstractMethodError: AbstractMethodError
+      SpecParser: SpecParser
+      Label: Label
+      Contract: Contract
+      FunctionContract: FunctionContract
+      IntegerContract: IntegerContract
+      NumberContract: NumberContract
+      StringContract: StringContract
