@@ -523,18 +523,32 @@ umd this, ->
         throw TypeError("Error creating typedef for #{label} - using reserved word")
       @typedefs[label] = typedef
 
+  #
+  # ### Parser for Type Specs ###
+  #
   class SpecParser
     constructor: (input, pos = 0) ->
       @input = input
       @pos = pos
 
+    split: ->
+      all_parts = @input.split(/(\(|\)|->|\{|\}|\?|[a-zA-Z0-9]*)/)
+      parts = []
+      for part in all_parts
+        unless part is ''
+          parts.push part
+      parts
+
+    #
+    # Entry-point for the parser.
+    #
     parse: ->
       result = undefined
       while @pos < @input.length
         if @input[@pos] is ")" or @input[@pos] is "]" or @input[@pos] is ">"
           @pos += 1
           return result
-        return result  if @input[@pos] is "," or @input[@pos] is "}"
+        return result if @input[@pos] is "," or @input[@pos] is "}"
         result = @parseHead()
       result
 
@@ -560,6 +574,9 @@ umd this, ->
         @pos += 1
       ObjectContractFactory name, record
 
+    #
+    # Secondary entry-point for the parser
+    #
     parseHead: ->
       if @input[@pos] is "Int"
         @pos += 1
@@ -642,17 +659,17 @@ umd this, ->
   # instance of the correct type of Contract, e.g., an `IntegerContract`.
   #
   buildContract = (input) ->
+    p = new SpecParser(input)
     # Split input, but keep brackets
-    input = input.split(/(\(|\)|->|\{|\}|\?|[a-zA-Z0-9]*)/)
-    input = input.filter((s) -> s.trim() isnt '' )
+    parts = p.split()
+    console.log "SPEC PARSER PARTS", parts
 
     # Check for typedefs
-    for item in input
-      if Typedef.typedefs[item]
-        input[idx] = Typedef.typedefs[item]
-        return buildContract(input.join ' ')
+    for part in parts
+      if Typedef.typedefs[part]
+        input[idx] = Typedef.typedefs[part]
+        return buildContract(parts.join ' ')
 
-    p = new SpecParser(input)
     p.parse()
 
   # ## Rimorso ##
