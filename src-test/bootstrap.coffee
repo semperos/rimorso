@@ -26,10 +26,8 @@ failMessage = (expected, actual, type = 'object') ->
 
 # Node
 if (typeof exports is 'object')
-  chai = require 'chai'
-  assert = chai.assert
-  expect = chai.expect
-  chai.should()
+  expect = require 'expect.js'
+  root.expect = expect
 
   # Helpers
   root.prettyArray = prettyArray
@@ -41,10 +39,8 @@ if (typeof exports is 'object')
 else
   mocha.setup
     ui: "bdd"
-
-  assert = window.chai.assert
-  expect = window.chai.expect
-  window.chai.should()
+  # Bug in expect.js' throwException
+  globals: ["message", "name"]
 
   # Helpers
   window.prettyArray = prettyArray

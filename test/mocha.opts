@@ -1,5 +1,6 @@
 --require ./test/bootstrap
 --ui bdd
+--globals message,name
 --reporter dot
 --colors
 --growl
