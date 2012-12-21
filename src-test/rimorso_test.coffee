@@ -1,8 +1,10 @@
 # See bootstrap.coffee
 if (typeof exports is 'object')
   R = root.Rimorso
+  failMessage = root.failMessage
 else
   R = window.Rimorso
+  failMessage = window.failMessage
 
 describe 'Housekeeping', ->
   describe 'Custom errors', ->
@@ -275,3 +277,14 @@ describe 'Type checking functions', ->
         (-> fc.restrict(/test/)).should.throw TypeError
 
 ## Test Parser ##
+
+  describe 'Spec parser', ->
+
+    before ->
+      input = 'add :: Int -> Int -> Int'
+      @output = ['add', ' ', ':', ':', ' ', 'Int', ' ', '->', ' ', 'Int', ' ', '->', ' ', 'Int']
+      @parser = new R.__impl.SpecParser(input)
+
+    it 'should return a function that takes a label and returns a contract', ->
+      splitOutput = @parser.split()
+      splitOutput.should.eql @output
