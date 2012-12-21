@@ -1,0 +1,37 @@
+#!/usr/bin/env coffee
+
+fs = require 'fs'
+esprima = require 'esprima'
+
+traverse = (node, fn) ->
+  fn(node)
+  for k,v of node
+    if node.hasOwnProperty k
+      child = node[k]
+      if (typeof child is 'object' and child isnt null)
+        if Object.prototype.toString.call(child) is '[object Array]'
+          for kid in child
+            traverse(kid, fn)
+        else
+          traverse(child, fn)
+
+isDescribe = (node) ->
+  node.type is "ExpressionStatement" and
+    node.expression.type is "CallExpression" and
+    node.expression.callee.type is "Identifier" and
+    node.expression.callee.name is "describe"
+
+handleDescribe = (node) ->
+  if isDescribe(node)
+    console.log "DESCRIBE BLOCK!"
+
+analyzeCode = (code) ->
+  ast = esprima.parse(code)
+  traverse ast, (node) -> handleDescribe(node)
+
+convertToQunit = ->
+  fs.readFile './test/rimorso_test.js', 'utf8', (err, data) ->
+    analyzeCode data
+
+
+convertToQunit()
