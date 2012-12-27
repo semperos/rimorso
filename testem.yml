@@ -6,7 +6,7 @@ launchers:
     protocol: "tap"
 launch_in_dev:
   - Node
-  - Chrome
+  - Firefox
 launch_in_ci:
   - Node
-  - Chrome
+  - Firefox
