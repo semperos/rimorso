@@ -1,32 +1,48 @@
 PATH	:= ./node_modules/.bin:${PATH}
 coffees := $(wildcard src/*.coffee)
-test-coffees = := $(wildcard src=test/*_test.coffee)
 coffee	:= ./node_modules/.bin/coffee
-mocha	:= ./node_modules/.bin/mocha
+api-docs-cmd := ./node_modules/.bin/codo
+api-docs-dir := api-docs
+literate-docs-cmd := ./node_modules/.bin/docco
+literate-docs-dir := literate-docs
 watch	:= ./script/watch
 test	:= ./node_modules/.bin/testem ci
 
-.PHONY : deps clean-docs clean build build-all test all install dist publish
+.PHONY : deps api-docs literate-docs docs clean-api-docs clean-literate-docs clean-docs clean build build-all test all install dist publish
 
 deps:
 	@echo "[x] Retrieving dependencies..."
 	npm install
 	npm prune
 
-docs: $(coffees)
-	@echo "[x] Generating documentation..."
-	docco $(coffees)
+api-docs: $(coffees) clean-api-docs deps
+	@echo "[x] Generating API documentation..."
+	@$(api-docs-cmd) -n "Rimorso" -o $(api-docs-dir) --title "Rimorso Api Documentation" src/
 
-clean-docs:
-	@echo "[x] Removing documentation..."
-	-rm -rf docs/
+literate-docs: $(coffees) clean-literate-docs deps
+	@echo "[x] Generating annotated source documentation..."
+	@$(literate-docs-cmd) -o $(literate-docs-dir) $(coffees)
+
+docs: $(coffees) api-docs literate-docs
+	@echo "[x] All documentation generated."
+
+clean-api-docs:
+	@echo "[x] Removing API documentation..."
+	-rm -rf $(api-docs-dir)
+
+clean-literate-docs:
+	@echo "[x] Removing annotated source documentation..."
+	-rm -rf $(literate-docs-dir)
+
+clean-docs: clean-api-docs clean-literate-docs
+	@echo "[x] All documentation removed."
 
 clean: clean-docs
 	@echo "[x] Removing compiled files..."
 	-rm -rf lib/
 	-rm -f test/*.js
 
-build:
+build: deps
 	@echo "[x] Compiling src and test CoffeeScript to JavaScript..."
 	@$(coffee) -o lib/ -c src/
 	@$(coffee) -o test/ -c src-test/
@@ -35,9 +51,8 @@ test: build
 	@echo "[x] Running tests..."
 	@$(test)
 
-# Watches fs and calls 'build-all'
-watch: clean
-	@echo "[x] Starting watcher..."
+dev: clean deps
+	@echo "[x] Starting development environment..."
 	@$(watch)
 
 build-all: build test docs
