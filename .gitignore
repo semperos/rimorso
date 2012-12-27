@@ -2,7 +2,8 @@
 !/index.js
 /node_modules/
 /lib/
-/docs/
+/api-docs/
+/literate-docs/
 
 .idea/
 *.iml
