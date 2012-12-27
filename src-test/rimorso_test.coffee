@@ -260,6 +260,38 @@ describe 'Type checking functions', ->
         expect(-> sc.restrict(42)).to.throwError TypeError
         expect(-> sc.relax(() ->)).to.throwError TypeError
 
+    describe "Unit contract", ->
+
+      fnName = "aFunction"
+      aLabel = new R.__impl.Label fnName
+      uc = new R.__impl.UnitContract aLabel
+
+      it "should let 'undefined' values pass through", ->
+        x = console.log()
+        expect(uc.restrict(x)).to.be undefined
+
+      it "should not let 'real' values through", ->
+        x = "foo"
+        y = 42
+        expect(-> uc.restrict x).to.throwError TypeError
+        expect(-> uc.restrict y).to.throwError TypeError
+
+    describe "Empty contract", ->
+
+      fnName = "aFunction"
+      aLabel = new R.__impl.Label fnName
+      ec = new R.__impl.EmptyContract aLabel
+
+      it "should let 'undefined' values pass through", ->
+        x = console.log()
+        expect(ec.restrict(x)).to.be undefined
+
+      it "should not let 'real' values through", ->
+        x = "foo"
+        y = 42
+        expect(-> ec.restrict x).to.throwError TypeError
+        expect(-> ec.restrict y).to.throwError TypeError
+
     describe "Function contract", ->
 
       fnName = "fnFunction"

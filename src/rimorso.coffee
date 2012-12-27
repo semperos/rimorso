@@ -354,7 +354,58 @@ umd this, ->
       "StringContractFactory()"
     f
 
+  #
+  # ### Unit Contract ###
+  #
+  class UnitContract extends Contract
+    #
+    # Override {Contract#restrict}
+    #
+    restrict: (x) ->
+      if (Is.undefined x)
+        return x
+      else
+        @label.setReason "The function <#{@label.name}> returns a value '#{x}'. It must not have a return value (i.e., return undefined)."
+        @fail()
+
+    #
+    # Override {Contract#relax}
+    #
+    relax: @::restrict
+
+  UnitContractFactory = ->
+    f = (label) ->
+      new UnitContract(label)
+    f.repr = ->
+      "UnitContractFactory()"
+    f
+
+  #
+  # ### Empty Contract ###
+  #
+  # For functions that take zero parameters
+  #
   class EmptyContract extends Contract
+    #
+    # Override {Contract#restrict}
+    #
+    restrict: (x) ->
+      if (not Is.undefined(x))
+        @label.setReason "The function was called with #{x} but should have been called with zero arguments."
+        @fail()
+
+    #
+    # Override {Contract#relax}
+    #
+    relax: @::restrict
+
+  EmptyContractFactory = ->
+    f = (label) ->
+      new EmptyContract(label)
+    f.repr = ->
+      "EmptyContractFactory()"
+    f
+
   class ObjectContract extends Contract
   class MaybeContract extends Contract
   class MaybeContractFactory
@@ -751,3 +802,5 @@ umd this, ->
       IntegerContract: IntegerContract
       NumberContract: NumberContract
       StringContract: StringContract
+      UnitContract: UnitContract
+      EmptyContract: EmptyContract
