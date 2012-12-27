@@ -1,5 +1,12 @@
 # ## Module Definition ##
 # Use UMD pattern to expose Rimorso correctly across environments.
+
+#
+# This is the Universal Module Definition that allows Rimorso
+# to be consumed as a CommonJS-style Node library, an AMD
+# module using a library like RequireJS, or in the browser
+# by attaching itself as a global.
+#
 umd = (root, factory) ->
   # Node.js
   if (typeof exports is 'object')
@@ -370,7 +377,7 @@ umd this, ->
       @range = range
 
     #
-    # @Override `Contract.restrict`
+    # Override {Contract#restrict}
     #
     # The parameter numArgs specifies the number of arguments that should be expected.
     # If it is the last argument, then we simply call the function. If numArgs is not
@@ -388,8 +395,8 @@ umd this, ->
       #  * Num args is provided and more than 1 arg is required.
       #
       # If num args is not provided, then the length property of
-      # the function (i.e., the number of named parameters declared
-      # for it) is used as num args instead.
+      # the function (i.e., the number of explicit parameters in its
+      # definition) is used as num args instead.
       #
       if (@range instanceof FunctionContract) and
            (not (@domain instanceof EmptyContract)) and
@@ -457,7 +464,7 @@ umd this, ->
           result.apply(undefined, restOfArgs)
 
     #
-    # @Override `Contract.relax`
+    # Override {Contract#relax}
     #
     relax: (f, numArgs) ->
       unless (Is.a.function(f))
@@ -478,7 +485,6 @@ umd this, ->
           )
           for arg in args
             out = out(arg)
-
           out
       else
         return (x) =>
@@ -531,6 +537,9 @@ umd this, ->
       @input = input
       @pos = pos
 
+    #
+    # Split the input string for custom separators
+    #
     split: ->
       all_parts = @input.split(/(\(|\)|->|\{|\}|\?|[a-zA-Z0-9]*)/)
       parts = []
@@ -552,12 +561,21 @@ umd this, ->
         result = @parseHead()
       result
 
+    #
+    # Recursively handle the keys and values
+    # of an object type definition.
+    #
     parseKeyVal: ->
       name = @input[@pos++]
       @pos += 1
       val = @parse()
       {name: name, contract: val}
 
+    #
+    # When a `"{"` is encountered, this method
+    # is called to parse the object type definition
+    # recursively.
+    #
     parseObject: ->
       record = []
 
@@ -575,7 +593,13 @@ umd this, ->
       ObjectContractFactory name, record
 
     #
-    # Secondary entry-point for the parser
+    # The meat-and-potatoes entry-point for the parser. It dispatches
+    # based on the value of items in the `@input` array, including
+    # all syntax for defining types in Rimorso.
+    #
+    # This is called in two situations: when a `forall`
+    # is encountered (type variables), or for the range
+    # of a {FunctionContract} as indicated by `"->"`
     #
     parseHead: ->
       if @input[@pos] is "Int"
@@ -662,7 +686,6 @@ umd this, ->
     p = new SpecParser(input)
     # Split input, but keep brackets
     parts = p.split()
-    console.log "SPEC PARSER PARTS", parts
 
     # Check for typedefs
     for part in parts

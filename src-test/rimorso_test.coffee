@@ -1,4 +1,6 @@
-# See bootstrap.coffee
+#
+# Prelude - see bootstrap.coffee for definitions
+#
 if (typeof exports is 'object')
   R = root.Rimorso
   failMessage = root.failMessage
