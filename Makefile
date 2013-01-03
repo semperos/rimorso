@@ -14,6 +14,7 @@ deps:
 	@echo "[x] Retrieving dependencies..."
 	npm install
 	npm prune
+	@echo "Rules: dev clean build test docs"
 
 api-docs: $(coffees) clean-api-docs deps
 	@echo "[x] Generating API documentation..."
