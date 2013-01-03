@@ -31,6 +31,10 @@ if (typeof exports is 'object')
   expect = chai.expect
   chai.should()
 
+  # Test globals
+  root.assert = assert
+  root.expect = expect
+
   # Helpers
   root.prettyArray = prettyArray
   root.failMessage = failMessage
@@ -42,8 +46,9 @@ else
   mocha.setup
     ui: "bdd"
 
-  assert = window.chai.assert
-  expect = window.chai.expect
+  # Test globals
+  window.assert = window.chai.assert
+  window.expect = window.chai.expect
   window.chai.should()
 
   # Helpers

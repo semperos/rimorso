@@ -2,9 +2,13 @@
 # Prelude - see bootstrap.coffee for definitions
 #
 if (typeof exports is 'object')
+  assert = root.assert
+  expect = root.expect
   R = root.Rimorso
   failMessage = root.failMessage
 else
+  assert = window.assert
+  expect = window.expect
   R = window.Rimorso
   failMessage = window.failMessage
 
@@ -268,13 +272,13 @@ describe 'Type checking functions', ->
 
       it "should let 'undefined' values pass through", ->
         x = console.log()
-        expect(uc.restrict(x)).to.be undefined
+        expect(uc.restrict(x)).to.be.undefined
 
       it "should not let 'real' values through", ->
         x = "foo"
         y = 42
-        expect(-> uc.restrict x).to.throwError TypeError
-        expect(-> uc.restrict y).to.throwError TypeError
+        expect(-> uc.restrict x).to.throw TypeError
+        expect(-> uc.restrict y).to.throw TypeError
 
     describe "Empty contract", ->
 
@@ -284,13 +288,13 @@ describe 'Type checking functions', ->
 
       it "should let 'undefined' values pass through", ->
         x = console.log()
-        expect(ec.restrict(x)).to.be undefined
+        expect(ec.restrict(x)).to.be.undefined
 
       it "should not let 'real' values through", ->
         x = "foo"
         y = 42
-        expect(-> ec.restrict x).to.throwError TypeError
-        expect(-> ec.restrict y).to.throwError TypeError
+        expect(-> ec.restrict x).to.throw TypeError
+        expect(-> ec.restrict y).to.throw TypeError
 
     describe "Function contract", ->
 
