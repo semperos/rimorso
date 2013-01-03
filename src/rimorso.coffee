@@ -54,6 +54,81 @@ umd this, ->
   core_hasOwn = class2type.hasOwnProperty
 
   #
+  # Bilby - Serious functional programming library for JavaScript
+  #
+  # The below copyright only applies to the functions `bind` and `curry`
+  # in the Bilby constructor supplied below.
+  #
+  # Copyright (C) 2012 Brian McKenna
+  #
+  # Permission is hereby granted, free of charge, to any person obtaining
+  # a copy of this software and associated documentation files (the
+  # "Software"), to deal in the Software without restriction, including
+  # without limitation the rights to use, copy, modify, merge, publish,
+  # distribute, sublicense, and/or sell copies of the Software, and to
+  # permit persons to whom the Software is furnished to do so, subject to
+  # the following conditions:
+  #
+  # The above copyright notice and this permission notice shall be
+  # included in all copies or substantial portions of the Software.
+  #
+  # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  # NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+  # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+  # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  class Bilby
+    #
+    # bind(f)(o)
+    #
+    # Makes `this` inside of `f` equal to `o`:
+    #
+    #   bind(() -> return this)(a)() is a
+    #
+    # Also partially applies arguments to curried functions:
+    #
+    #   bind(add)(null, 10)(32) is 42
+    #
+    bind = (f) ->
+      return (o) ->
+        if f.bind
+          return f.bind.apply(f, [o].concat([].slice.call(arguments, 1)))
+
+        length = f._length or f.length
+        args = [].slice.call(arguments, 1)
+        g = () -> f.apply(o or this, args.concat([].slice.call(arguments)))
+
+        g._length = length - args.length
+        g
+
+    #
+    # curry(f)
+    #
+    # Takes a normal fucntion `f` and allows partial application of its
+    # named arguments:
+    #
+    #     add = Bilby.curry((a,b) -> a+b)
+    #     add15 = add 15
+    #     add15(27) is 42
+    #
+    # Retains ability of complete application by calling the function
+    # when enough arguments are filled:
+    #
+    #     add(15, 27) is 42
+    #
+    curry = (f) ->
+      return () ->
+        g = bind(f).apply(f, [this].concat([].slice.call(arguments)))
+        length = g._length or g.length
+
+        if length is 0
+          g()
+        else
+          curry(g)
+
+  #
   # ### Type Comparison ###
   #
   class Is
