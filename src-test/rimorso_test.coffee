@@ -206,17 +206,17 @@ describe 'Type checking functions', ->
       aContract = new R.__impl.Contract aLabel
 
       it "should provide an abstract definition for 'restrict'", ->
-        (-> aContract.restrict()).should.throw R.__impl.AbstractMethodError
+        (=> aContract.restrict()).should.throw R.__impl.AbstractMethodError
 
       it "should provide an abstract definition for 'relax'", ->
-        (-> aContract.relax()).should.throw R.__impl.AbstractMethodError
+        (=> aContract.relax()).should.throw R.__impl.AbstractMethodError
 
       it "should provide a fail method that throws an error", ->
-        (-> aContract.fail()).should.throw TypeError
+        (=> aContract.fail()).should.throw TypeError
 
       it "should provide a meaningful message from a failure derived from its label", ->
-        (-> aContract.fail()).should.throw /function/
-        (-> aContract.fail()).should.throw /42/
+        (=> aContract.fail()).should.throw /function/
+        (=> aContract.fail()).should.throw /42/
 
     describe "Integer contract", ->
 
@@ -229,8 +229,8 @@ describe 'Type checking functions', ->
         ic.relax(42).should.equal 42
 
       it "should not allow non-integer numbers to pass", ->
-        (-> ic.restrict(4.2)).should.throw TypeError
-        (-> ic.relax(4.2)).should.throw TypeError
+        (=> ic.restrict(4.2)).should.throw TypeError
+        (=> ic.relax(4.2)).should.throw TypeError
 
     describe "Number contract", ->
 
@@ -247,8 +247,8 @@ describe 'Type checking functions', ->
         nc.restrict(4.2).should.equal 4.2
 
       it "should fail on non-numeric values", ->
-        (-> nc.restrict("foo")).should.throw TypeError
-        (-> nc.relax(() ->)).should.throw TypeError
+        (=> nc.restrict("foo")).should.throw TypeError
+        (=> nc.relax(() ->)).should.throw TypeError
 
     describe "String contract", ->
 
@@ -261,8 +261,8 @@ describe 'Type checking functions', ->
         sc.relax("bar").should.equal "bar"
 
       it "should not let non-string values pass", ->
-        (-> sc.restrict(42)).should.throw TypeError
-        (-> sc.relax(() ->)).should.throw TypeError
+        (=> sc.restrict(42)).should.throw TypeError
+        (=> sc.relax(() ->)).should.throw TypeError
 
     describe "Unit contract", ->
 
@@ -277,8 +277,8 @@ describe 'Type checking functions', ->
       it "should not let 'real' values through", ->
         x = "foo"
         y = 42
-        expect(-> uc.restrict x).to.throw TypeError
-        expect(-> uc.restrict y).to.throw TypeError
+        expect(=> uc.restrict x).to.throw TypeError
+        expect(=> uc.restrict y).to.throw TypeError
 
     describe "Empty contract", ->
 
@@ -293,8 +293,8 @@ describe 'Type checking functions', ->
       it "should not let 'real' values through", ->
         x = "foo"
         y = 42
-        expect(-> ec.restrict x).to.throw TypeError
-        expect(-> ec.restrict y).to.throw TypeError
+        expect(=> ec.restrict x).to.throw TypeError
+        expect(=> ec.restrict y).to.throw TypeError
 
     describe "Function contract", ->
 
@@ -311,8 +311,8 @@ describe 'Type checking functions', ->
         fc.relax((n) -> n*2)(21).should.equal 42
 
       it "should not let non-function values pass", ->
-        (-> fc.restrict(42)).should.throw TypeError
-        (-> fc.restrict(/test/)).should.throw TypeError
+        (=> fc.restrict(42)).should.throw TypeError
+        (=> fc.restrict(/test/)).should.throw TypeError
 
   ## Test Parser ##
 
@@ -332,28 +332,205 @@ describe 'Type checking functions', ->
 
   ## Public-facing API ##
 
-  describe 'End-to-end type checking', ->
+  describe 'End-to-end type checking with Rimorso.T', ->
+    describe 'Functions', ->
+
+      before ->
+        @passTwo = R.T 'passTwo :: (Int -> Int) -> Int', (f) -> f 2
+        @greeter = R.T 'greeter :: String -> (String -> String)', ((s) -> (greeting) -> "#{greeting}, #{s}")
+        @badGreeter = R.T 'badGreeter :: String -> (String -> String)', ((s) -> s)
+
+      it "should accept functions for parameters", ->
+        @passTwo((x) -> x*2).should.equal 4
+
+      it "should accept functions for return values", ->
+        @greeter("John").should.be.a 'function'
+        @greeter("John")("Hello").should.equal "Hello, John"
+
+      it "should fail on non-function parameters", ->
+        (=> @passTwo(42)).should.throw TypeError
+
+      it "should fail if the supplied function returns a non-function value", ->
+        (=> @badGreeter("John")).should.throw TypeError
+
+
+
     describe 'Numbers', ->
+
+      before ->
+        @add = R.T 'add :: Num -> Num -> Num', (a,b) -> a+b
+        @badAdd = R.T 'badAdd :: Num -> Num -> Num', (a,b) -> '' + a + b
+        @id = R.T 'id :: Num -> String', (x) -> x; "foo"
+
+      it "should accept numbers for parameters", ->
+        @id(2).should.equal 'foo'
+
+      it "should accept numbers for return values", ->
+        answer = R.T 'answer :: 0 -> Num', () -> 42
+        answer().should.equal 42
+
+      it "should fail on non-numeric parameters", ->
+        (=> @add("foo", 42)).should.throw TypeError
+        (=> @add(42, "foo")).should.throw TypeError
+
+      it "should not fail on numeric parameters that have decimal parts", ->
+        @add(2,3.4).should.be.ok
+
+      it "should fail if the supplied function returns a non-numeric value", ->
+        (=> @badAdd(2,2)).should.throw TypeError
+
       describe 'Integers', ->
 
+        before ->
+          @add = R.T 'add :: Int -> Int -> Int', (a,b) -> a+b
+          @badAdd = R.T 'badAdd :: Int -> Int -> Int', (a,b) -> '' + a + b
+          @id = R.T 'id :: Int -> String', (x) -> x; "foo"
+
         it "should accept integers for parameters", ->
-          id = R.T 'id :: Int -> String', (x) -> x; "foo"
-          id(2).should.equal 'foo'
+          @id(2).should.equal 'foo'
 
         it "should accept integers for return values", ->
           answer = R.T 'answer :: 0 -> Int', () -> 42
           answer().should.equal 42
 
         it "should fail on non-numeric parameters", ->
-          add = R.T 'add :: Int -> Int -> Int', (a,b) -> a+b
-          (-> add("foo", 42)).should.throw TypeError
-          (-> add(42, "foo")).should.throw TypeError
+          (=> @add("foo", 42)).should.throw TypeError
+          (=> @add(42, "foo")).should.throw TypeError
+
+        it "should fail on numeric parameters that have decimal parts", ->
+          (=> @add(2,3.4)).should.throw TypeError
 
         it "should fail if the supplied function returns a non-numeric value", ->
-          badAdd = R.T 'badAdd :: Int -> Int -> Int', (a,b) -> '' + a + b
-          (-> badAdd(2,2)).should.throw TypeError
+          (=> @badAdd(2,2)).should.throw TypeError
+
+    describe 'Strings', ->
+
+      before ->
+        @upper = R.T "upper :: String -> Num", (s) -> 42
+        @howMany = R.T "howMany :: Num -> String", (n) -> n + '!'
+        @badUpper = R.T "badUpper :: String -> String", (s) -> 42
+
+      it "should accept strings for parameters", ->
+        @upper("foo").should.equal 42
+
+      it "should accept strings for return values", ->
+        @howMany(42).should.equal "42!"
+
+      it "should reject non-string parameters", ->
+        (=> @upper(42)).should.throw TypeError
+
+      it "should reject non-string return values", ->
+        (=> @badUpper("foo")).should.throw TypeError
 
     describe 'Functions that take no arguments (EmptyContract)', ->
+
+      before ->
+        @myLog = R.T 'myLog :: 0 -> Unit', () -> undefined
+        @badLog = R.T 'badLog :: 0 -> Unit', (s) -> undefined
+
       it "should pass for functions that take no arguments", ->
-        myLog = R.T 'myLog :: 0 -> Unit', () -> return undefined
-        expect(myLog()).to.be.undefined
+        expect(@myLog()).to.be.undefined
+
+      it "should fail if the function is passed arguments", ->
+        (=> @myLog(42)).should.throw TypeError
+
+      it "should fail for functions that take arguments", ->
+        (=> @badLog(42)).should.throw TypeError
+
+    describe "Functions that return 'undefined'", ->
+
+      before ->
+        @myLog = R.T 'myLog :: 0 -> Unit', () -> undefined
+        @badLog = R.T 'badLog :: 0 -> Unit', (s) -> s + '!'
+
+      it "should pass for functions that take return 'undefined'", ->
+        expect(@myLog()).to.be.undefined
+
+      it "should fail if the function returns a value", ->
+        (=> @badLog("whoa")).should.throw TypeError
+
+    describe 'Booleans', ->
+
+      before ->
+        @truth = R.T "upper :: Bool -> Num", (s) -> 42
+        @falsehood = R.T "howMany :: Num -> Bool", (n) -> false
+        @truthy = R.T "truthy :: Num -> Bool", (n) -> Math.abs(n) + 1
+        @badTruth = R.T "badUpper :: Bool -> Bool", (s) -> 42
+
+      it "should accept booleans for parameters", ->
+        @truth(true).should.equal 42
+
+      it "should accept booleans for return values", ->
+        @falsehood(42).should.equal false
+
+      it "should reject non-boolean parameters", ->
+        (=> @truth(42)).should.throw TypeError
+
+      it "should reject non-boolean return values", ->
+        (=> @badTruth(true)).should.throw TypeError
+
+      it "should reject truthy return values", ->
+        (=> @truthy(42)).should.throw TypeError
+        (=> @truthy(42)).should.throw /Number/
+
+    describe 'Lists', ->
+
+      before ->
+        @lastOne = R.T "lastOne :: [String] -> String", (l) -> l[l.length - 1]
+        @oneMinus = R.T "oneMinus :: Int -> [Int]", (n) -> [n, n-1]
+        @badMinus = R.T "badMinus :: Int -> [Int]", (n) -> n
+        @badItems = R.T "badItems :: 0 -> [Int]", () -> [42, "foo"]
+
+      it "should accept lists for parameters", ->
+        @lastOne(["foo", "bar"]).should.equal "bar"
+
+      it "should accept lists for return values", ->
+        @oneMinus(42).should.eql [42, 41]
+
+      it "should reject non-list parameters", ->
+        (=> @lastOne(42)).should.throw TypeError
+        (=> @lastOne(42)).should.throw /Number/
+
+      it "should reject non-list return values", ->
+        (=> @badMinus(42)).should.throw /Number/
+
+      it "should reject lists that do not have homogenous items", ->
+        (=> @lastOne(["foo",1,2])).should.throw TypeError
+        (=> @lastOne(["foo",1,2])).should.throw /Number/
+        (=> @badItems()).should.throw TypeError
+
+    describe "'Maybe' values", ->
+
+      before ->
+        @optional = R.T 'optional :: Int? -> Int', (n) -> if n then n*2 else 41
+        @nullMe = R.T 'nullMe :: Int -> Int?', (n) -> if n is 21 then n*2 else null
+        @undefMe = R.T 'undefMe :: String -> String?', (s) -> if s is "foo" then "bar" else undefined
+
+      it "should accept functions that take optional arguments", ->
+        @optional().should.equal 41
+        @optional(null).should.equal 41
+        @optional(undefined).should.equal 41
+        @optional(21).should.equal 42
+
+      it "should accept functions that return null or a non-null, non-undefined value", ->
+        expect(@nullMe(1)).not.to.throw
+        expect(@nullMe(1)).to.be.null
+        expect(@nullMe(21)).to.equal 42
+
+      it "should accept functions that return undefined or a non-null, non-undefined value", ->
+        expect(@undefMe("wow")).not.to.throw
+        expect(@undefMe("wow")).to.be.undefined
+        expect(@undefMe("foo")).to.equal "bar"
+
+    # TODO:
+    # describe 'Maps (Dictionaries)', ->
+
+    #   it "should accept maps for parameters", ->
+
+    #   it "should accept maps for return values", ->
+
+    #   it "should reject non-map parameters", ->
+
+    #   it "should reject non-map return values", ->
+
+    #   it "should reject maps that do not have homogenous items", ->

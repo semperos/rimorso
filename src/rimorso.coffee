@@ -106,11 +106,11 @@ umd this, ->
     #
     # Makes `this` inside of `f` equal to `o`:
     #
-    #   bind(() -> return this)(a)() is a
+    #     bind(() -> return this)(a)() is a
     #
     # Also partially applies arguments to curried functions:
     #
-    #   bind(add)(null, 10)(32) is 42
+    #     bind(add)(null, 10)(32) is 42
     #
     @bind: (f) ->
       return (o) ->
@@ -185,9 +185,9 @@ umd this, ->
     #
     # Return the type of an object.
     #
-    # Taken from jQuery. At its root, this is just
-    # Object.prototype.toString.call(obj), but with lower-casing
-    # and consideration of null/undefined values.
+    # Taken in part from jQuery. At its root, this is just
+    # Object.prototype.toString.call(obj), but with higher-level
+    # consideration of type (as opposed to raw "class").
     #
     @getType: (obj) =>
       if obj == null
@@ -297,8 +297,7 @@ umd this, ->
     #
     # Give this Label a name and polarity
     #
-    constructor: (name) ->
-      @name = name
+    constructor: (@name) ->
       @polarity = true
       @reason = ''
 
@@ -363,15 +362,14 @@ umd this, ->
     #
     # @param [Label] label A function label
     #
-    constructor: (label) ->
-      @label = label
+    constructor: (@label) ->
 
     #
     # @abstract Abstract implementation of `restrict` function,
     #   to be overriden by sub-classes, restricting values
     #   based on specific type requirements.
     #
-    restrict: ->
+    restrict: =>
       throw new AbstractMethodError
 
     #
@@ -379,7 +377,7 @@ umd this, ->
     #   to be overriden by sub-classes, relaxing values
     #   based on specific type requirements.
     #
-    relax: ->
+    relax: =>
       throw new AbstractMethodError
 
     #
@@ -402,7 +400,7 @@ umd this, ->
     #
     # @Override {Contract#restrict}
     #
-    restrict: (x) ->
+    restrict: (x) =>
       if (Is.a.number(x) and Math.round(x) is x)
         return x
       else if (not Is.number(x))
@@ -438,7 +436,7 @@ umd this, ->
     #
     # @Override {Contract#restrict}
     #
-    restrict: (x) ->
+    restrict: (x) =>
       if (Is.a.number x)
         return x
       else
@@ -467,7 +465,7 @@ umd this, ->
     #
     # @Override {Contract#restrict}
     #
-    restrict: (x) ->
+    restrict: (x) =>
       if (Is.a.string x)
         return x
       else
@@ -490,13 +488,42 @@ umd this, ->
     f
 
   #
+  # ### Boolean Contract ###
+  #
+  class BooleanContract extends Contract
+    #
+    # Override {Contract#restrict}
+    #
+    restrict: (x) =>
+      if (Is.a.boolean x)
+        return x
+      else
+        @label.setReason x, 'Boolean'
+        @fail()
+
+    #
+    # Override {Contract#relax}
+    #
+    relax: @::restrict
+
+  #
+  # Factory for creating {BooleanContract} instances
+  #
+  BooleanContractFactory = ->
+    f = (label) ->
+      new BooleanContract(label)
+    f.repr = () ->
+      "BooleanContractFactory()"
+    f
+
+  #
   # ### Unit Contract ###
   #
   class UnitContract extends Contract
     #
     # Override {Contract#restrict}
     #
-    restrict: (x) ->
+    restrict: (x) =>
       if (Is.undefined x)
         return x
       else
@@ -519,6 +546,128 @@ umd this, ->
     f
 
   #
+  # ### List Contract ###
+  #
+  # A list is a type for JavaScript Array-like's
+  # with homogenous items.
+  #
+  # At present, Array-like only implies a `length`
+  # property, which is not robust. Perhaps this
+  # should really be limited to arrays?
+  #
+  class ListContract extends Contract
+    #
+    # List contracts take an extra item, namely
+    # the contract of its items.
+    #
+    constructor: (label, @itemContract) ->
+      super
+
+    #
+    # Override {Contract#restrict}
+    #
+    restrict: (l) =>
+      out = []
+      # @todo Should this just enforce Is.an.array ?
+      if (not l) or (l.length is undefined)
+        @label.setReason l, 'List'
+        @fail()
+      #
+      # Plonk is like `push` but with type checking on items.
+      #
+      up = @
+      out.plonk = (item) ->
+        #
+        # In the case of variable contracts, an item must first be
+        # relaxed before being restricted. We need to do this to
+        # all elements so homogenous types are ensured.
+        #
+        for x,idx in @
+          @[idx] = up.itemContract.relax x
+        item = up.itemContract.relax item
+        item = up.itemContract.restrict item
+        for x,idx in @
+          @[idx] = up.itemContract.restrict x
+        @[@.length] = item
+        @length
+      for item in l
+        out.plonk @itemContract.restrict(item)
+      delete out.plonk
+      out
+
+    #
+    # Override {Contract#relax}
+    #
+    relax: (l) =>
+      out = []
+      if (not l) or (l.length is undefined)
+        @label.setReason l, 'List'
+        @fail()
+      for item in l
+        out.push @itemContract.relax item
+      out
+
+  #
+  # A factory for creating {ListContract} instances.
+  #
+  ListContractFactory = (itemContractFactory)->
+    f = (label) ->
+      new ListContract(label, itemContractFactory(label))
+    f.repr = ->
+      "ListContractFactory(#{itemContractFactory.repr()})"
+    f
+
+  #
+  # ### Map Contract ###
+  #
+  # Maps are plain ol' JavaScript objects.
+  #
+  class MapContract extends Contract
+    #
+    # A map contract takes three parameters, a label
+    # and a contract for keys and values. Since JavaScript
+    # objects only have string keys at present, the key contract
+    # is simply for consistency.
+    #
+    # @param [Label] label The function name and metadata
+    #
+    constructor: (label, @keyContract, @valueContract) ->
+      super
+
+    #
+    # Override {Contract#restrict}
+    #
+    restrict: (m) ->
+      if (not m)
+        @label.setReason m, 'Map'
+        @fail()
+      out = {}
+      for k,v of m
+        out[@keyContract.restrict k] = @valueContract.restrict v
+      out
+
+    #
+    # Override {Contract#relax}
+    #
+    relax: (m) ->
+      if (not m)
+        @label.setReason m, 'Map'
+      out = {}
+      for k,v of x
+        out[@keyContract.relax k] = @valueContract.relax v
+      out
+
+  #
+  # Factory for producing {MapContract} instances
+  #
+  MapContractFactory = (keyContractFactory, valueContractFactory) ->
+    f = (label) ->
+      new MapContract(label, keyContractFactory(label), valueContractFactory(label))
+    f.repr = ->
+      "MapContractFactory(#{keyContractFactory.repr()}, #{valueContractFactory.repr()})"
+    f
+
+  #
   # ### Empty Contract ###
   #
   # For functions that take zero parameters
@@ -527,7 +676,7 @@ umd this, ->
     #
     # Override {Contract#restrict}
     #
-    restrict: (x) ->
+    restrict: (x) =>
       if (not Is.undefined(x))
         @label.setReason "The function was called with #{x} but should have been called with zero arguments."
         @fail()
@@ -553,17 +702,6 @@ umd this, ->
   # For structural comparison of objects
   #
   class ObjectContract extends Contract
-
-  #
-  # ### Maybe Contract ###
-  #
-  class MaybeContract extends Contract
-
-  #
-  # Utility function for creating MaybeContract
-  # instances.
-  #
-  MaybeContractFactory = ->
 
   #
   # Variable contract factory placeholder
@@ -600,7 +738,7 @@ umd this, ->
     # If it is the last argument, then we simply call the function. If numArgs is not
     # specified, the number of arguments is predicted (because JavaScript does not enforce how many arguments are passed to a function) and used.
     #
-    restrict: (f, numArgs) ->
+    restrict: (f, numArgs) =>
       unless (Is.a.function f)
         @label.setReason f, 'function'
         @fail()
@@ -683,7 +821,7 @@ umd this, ->
     #
     # Override {Contract#relax}
     #
-    relax: (f, numArgs) ->
+    relax: (f, numArgs) =>
       unless (Is.a.function(f))
         @label.setReason f, 'function'
         @fail()
@@ -725,6 +863,48 @@ umd this, ->
       new FunctionContract(label, domainFactory(label), rangeFactory(label.complement()), isRet)
     f.repr = ->
       "FunctionContractFactory(#{domainFactory.repr()}, #{rangeFactory.repr()})"
+    f
+
+  #
+  # ### Maybe Contract ###
+  #
+  # Contracts dealing with optionally null/undefined values
+  #
+  class MaybeContract extends Contract
+    #
+    # Build a "maybe" contract from both a label
+    # and the inner (non-maybe'd) type
+    #
+    constructor: (label, @inner) ->
+      super
+
+    #
+    # Override {Contract#restrict}
+    #
+    restrict: (value) ->
+      # Supports both undefined and null, i.e., null == null and undefined == null
+      unless value?
+        value
+      else
+        @inner.restrict value
+
+    #
+    # Override {Contract#relax}
+    #
+    relax: (value) ->
+      unless value?
+        value
+      else
+        @inner.relax value
+
+  #
+  # Factory for creating {MaybeContract} instances
+  #
+  MaybeContractFactory = (innerFactory) ->
+    f = (label) ->
+      new MaybeContract(label, innerFactory(label))
+    f.repr = ->
+      "MaybeContractFactory(#{innerFactory.repr()})"
     f
 
   # ## Typedefs ##
@@ -1030,5 +1210,9 @@ umd this, ->
       IntegerContract: IntegerContract
       NumberContract: NumberContract
       StringContract: StringContract
+      BooleanContract: BooleanContract
       UnitContract: UnitContract
+      ListContract: ListContract
+      MapContract: MapContract
+      MaybeContract: MaybeContract
       EmptyContract: EmptyContract
