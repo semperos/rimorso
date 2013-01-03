@@ -64,7 +64,7 @@ umd this, ->
   #
   # Bilby - Serious functional programming library for JavaScript
   #
-  # The below copyright only applies to the functions `bind` and `curry`
+  # The below copyright only applies to the functions {.bind} and {.curry}
   # in the Bilby constructor supplied below.
   #
   # Copyright (C) 2012 Brian McKenna
@@ -100,7 +100,7 @@ umd this, ->
     #
     #   bind(add)(null, 10)(32) is 42
     #
-    bind = (f) ->
+    @bind: (f) ->
       return (o) ->
         if f.bind
           return f.bind.apply(f, [o].concat([].slice.call(arguments, 1)))
@@ -127,7 +127,7 @@ umd this, ->
     #
     #     add(15, 27) is 42
     #
-    curry = (f) ->
+    @curry: (f) ->
       return () ->
         g = bind(f).apply(f, [this].concat([].slice.call(arguments)))
         length = g._length or g.length
