@@ -22,8 +22,8 @@
   "devDependencies": {
     "testem": "0.2.50",
     "mocha": "1.7.4",
-    "expect.js": "0.2.0",
     "codo": "1.5.4",
+    "chai": "1.4.0",
     "docco": "0.4.0",
     "coffee-script": ">= 1.4",
     "chokidar": "0.5.0",
