@@ -28,10 +28,18 @@ umd this, ->
   # ### Custom Errors ###
   #
 
+  #
   # AbstractMethodError for simulating abstract functions
   # attached to object prototypes.
   #
   class AbstractMethodError extends Error
+    #
+    # Build an error object for calling abstract methods, providing the fields
+    # that most JavaScript tooling expects when displaying error messages,
+    # namely `name` and `message`.
+    #
+    # @param [String] message A custom message to use for reporting this error
+    #
     constructor: (message) ->
       @message = message or 'You tried to call an abstract method. You must override this method in your subclass.'
       @name = 'AbstractMethodError'
@@ -79,6 +87,7 @@ umd this, ->
   # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
   # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
   # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  #
   class Bilby
     #
     # bind(f)(o)
@@ -185,9 +194,12 @@ umd this, ->
     #
 
     #
-    # Chaining methods for "fluent" API
+    # Chaining method for "fluent" API
     #
     @a: @
+
+    #
+    # Chaining method for "fluent" API
     @an: @
 
     #
@@ -300,6 +312,18 @@ umd this, ->
       label.polarity = !@polarity
       label
 
+    #
+    # Set a custom reason for the type checking failure.
+    #
+    # If a `type` is passed in, a default message including
+    # the value as well as actual/expected types is generated.
+    # If only `value` is passed in, it will be treated as a
+    # regular {String}.
+    #
+    # @param [Object,String] value Either the value that failed type checking,
+    #   or a raw string message to include as the reason for type failure
+    # @param [String] type The expected type in a type check scenario
+    #
     setReason: (value, type) =>
       # Use default message format if type is provided
       if type?
@@ -322,12 +346,27 @@ umd this, ->
   # An abstract definition for all type contracts.
   #
   class Contract
+    #
+    # Build a contract given a function {Label}
+    #
+    # @param [Label] label A function label
+    #
     constructor: (label) ->
       @label = label
 
+    #
+    # @abstract Abstract implementation of `restrict` function,
+    #   to be overriden by sub-classes, restricting values
+    #   based on specific type requirements.
+    #
     restrict: ->
       throw new AbstractMethodError
 
+    #
+    # @abstract Abstract implementation of `relax` function,
+    #   to be overriden by sub-classes, relaxing values
+    #   based on specific type requirements.
+    #
     relax: ->
       throw new AbstractMethodError
 
@@ -349,7 +388,7 @@ umd this, ->
   #
   class IntegerContract extends Contract
     #
-    # @Override `Contract.restrict`
+    # @Override {Contract#restrict}
     #
     restrict: (x) ->
       if (Is.a.number(x) and Math.round(x) is x)
@@ -362,10 +401,13 @@ umd this, ->
         @fail()
 
     #
-    # @Override `Contract.relax`
+    # @Override {Contract#relax}
     #
     relax: @::restrict
 
+  #
+  # Factory for creating {IntegerContract} instances
+  #
   IntegerContractFactory = ->
     f = (label) ->
       new IntegerContract(label)
@@ -382,7 +424,7 @@ umd this, ->
   #
   class NumberContract extends Contract
     #
-    # @Override `Contract.restrict`
+    # @Override {Contract#restrict}
     #
     restrict: (x) ->
       if (Is.a.number x)
@@ -392,10 +434,13 @@ umd this, ->
         @fail()
 
     #
-    # @Override `Contract.relax`
+    # @Override {Contract#relax}
     #
     relax: @::restrict
 
+  #
+  # Factory for creating {NumberContract} instances
+  #
   NumberContractFactory = ->
     f = (label) ->
       new NumberContract(label)
@@ -408,7 +453,7 @@ umd this, ->
   #
   class StringContract extends Contract
     #
-    # @Override `Contract.restrict`
+    # @Override {Contract#restrict}
     #
     restrict: (x) ->
       if (Is.a.string x)
@@ -418,10 +463,13 @@ umd this, ->
         @fail()
 
     #
-    # @Override `Contract.relax`
+    # @Override {Contract#relax}
     #
     relax: @::restrict
 
+  #
+  # Factory for creating {StringContract} instances
+  #
   StringContractFactory = ->
     f = (label) ->
       new StringContract(label)
@@ -448,6 +496,9 @@ umd this, ->
     #
     relax: @::restrict
 
+  #
+  # Factory for creating {UnitContract} instances
+  #
   UnitContractFactory = ->
     f = (label) ->
       new UnitContract(label)
@@ -474,6 +525,9 @@ umd this, ->
     #
     relax: @::restrict
 
+  #
+  # Factory for creating {EmptyContract} instances
+  #
   EmptyContractFactory = ->
     f = (label) ->
       new EmptyContract(label)
@@ -481,9 +535,29 @@ umd this, ->
       "EmptyContractFactory()"
     f
 
+  #
+  # ### Object Contract ###
+  #
+  # For structural comparison of objects
+  #
   class ObjectContract extends Contract
+
+  #
+  # ### Maybe Contract ###
+  #
   class MaybeContract extends Contract
-  class MaybeContractFactory
+
+  #
+  # Utility function for creating MaybeContract
+  # instances.
+  #
+  MaybeContractFactory = ->
+
+  #
+  # Variable contract factory placeholder
+  #
+  # Not sure what this is...
+  #
   class VariableContractFactoryPlaceholder
 
   #
@@ -497,6 +571,11 @@ umd this, ->
   # support any JavaScript value, including other functions.
   #
   class FunctionContract extends Contract
+    #
+    # Build a function contract from a label
+    # (function name and metadata), domain (arguments),
+    # and range (output).
+    #
     constructor: (label, domain, range) ->
       super
       @domain = domain
@@ -626,6 +705,9 @@ umd this, ->
             return result
           result.apply(undefined, restOfArgs)
 
+  #
+  # Factory for creating {FunctionContract} instances
+  #
   FunctionContractFactory = (domainFactory, rangeFactory, isRet) ->
     f = (label) ->
       new FunctionContract(label, domainFactory(label), rangeFactory(label.complement()), isRet)
@@ -648,6 +730,14 @@ umd this, ->
       0: true
       forall: true
 
+    #
+    # Create a new type definition given a label
+    # (name of function) and a `typedef`
+    # definition.
+    #
+    # @param [String] label A function name
+    # @param [String] typedef A type definition string
+    #
     @create: (label, typedef) ->
       if (@typedefs[label])
         throw TypeError("Error creating typedef for #{label} - already exists")
@@ -659,12 +749,21 @@ umd this, ->
   # ### Parser for Type Specs ###
   #
   class SpecParser
+    #
+    # Build a type specification parser given an `input` string
+    # and a starting position `pos`, which defaults to `0`.
+    #
+    # @param [String] input A type specification string
+    # @param [Number] pos The starting position in the `input` string, defaults to `0`
+    #
     constructor: (input, pos = 0) ->
       @input = input
       @pos = pos
 
     #
     # Split the input string for custom separators
+    #
+    # Implicitly uses `@input` passed in as part of constructor.
     #
     split: ->
       all_parts = @input.split(/(\(|\)|->|\{|\}|\?|[a-zA-Z0-9]*)/)
@@ -676,6 +775,8 @@ umd this, ->
 
     #
     # Entry-point for the parser.
+    #
+    # Implicitly uses `@input` passed in as part of constructor.
     #
     parse: ->
       result = undefined
@@ -691,6 +792,8 @@ umd this, ->
     # Recursively handle the keys and values
     # of an object type definition.
     #
+    # Implicitly uses `@input` passed in as part of constructor.
+    #
     parseKeyVal: ->
       name = @input[@pos++]
       @pos += 1
@@ -701,6 +804,8 @@ umd this, ->
     # When a `"{"` is encountered, this method
     # is called to parse the object type definition
     # recursively.
+    #
+    # Implicitly uses `@input` passed in as part of constructor.
     #
     parseObject: ->
       record = []
@@ -808,6 +913,8 @@ umd this, ->
   # Those factories themselves return a function that takes a `Label` and returns an
   # instance of the correct type of Contract, e.g., an `IntegerContract`.
   #
+  # @param [String] input The type definition string
+  #
   buildContract = (input) ->
     p = new SpecParser(input)
     # Split input, but keep brackets
@@ -827,6 +934,14 @@ umd this, ->
   # and for building ADT's.
   #
   class Rimorso
+    #
+    # Entry-point for creating functions with type checking
+    # wrapped around them.
+    #
+    # @param [String] spec The type specification string, used to define
+    #   type checking contracts that are wrapped around the original function in `value`
+    # @param [Function] value The value (usually a function) to wrap with type checking.
+    #
     @T: (spec, value) ->
       input = spec.split " "
 
@@ -856,6 +971,12 @@ umd this, ->
         name = "anonymous"
         type = spec.trim()
 
+      #
+      # Get the appropriate object factory based on `type`
+      # and generate the type checking contract (this is
+      # what defines relax and restrict, which are applied to
+      # a function's inputs and outputs respectively.
+      #
       factory = buildContract(type)
       contract = factory(new Label(name))
 
@@ -866,8 +987,27 @@ umd this, ->
       #
       contract.restrict(value)
 
+    #
+    # Entry-point for defining algebraic data types (ADT's).
+    #
+    # @todo Not implemented yet.
+    #
     @D: -> console.log "Algebraic datatypes"
+
+    #
+    # Proxy to {Is} class, which contains generic functions
+    # for type checking JavaScript data types.
+    #
     @Is: Is
+
+    #
+    # Internal field, included to make testing internals easier.
+    #
+    # While it is generally a bad idea to test internals, I have done
+    # so to fully grasp how the original Ristretto library was put
+    # together. This may be removed in a future release and should
+    # not be relied on.
+    #
     @__impl:
       AbstractMethodError: AbstractMethodError
       SpecParser: SpecParser
