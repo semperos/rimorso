@@ -25,6 +25,18 @@ umd this, ->
   #
 
   #
+  # ### Essential Functions ###
+  #
+
+  #
+  # Definition of `String.trim`,
+  # only available in IE >= 9
+  #
+  if (not String.prototype.trim)
+    String::trim = () ->
+      @replace(/^\s+|\s+$/g,'')
+
+  #
   # ### Custom Errors ###
   #
 
@@ -394,7 +406,7 @@ umd this, ->
       if (Is.a.number(x) and Math.round(x) is x)
         return x
       else if (not Is.number(x))
-        @label.setReason x, 'Number'
+        @label.setReason x, 'Number(Integer)'
         @fail()
       else
         @label.setReason x, 'Integer'
@@ -757,7 +769,7 @@ umd this, ->
     # @param [Number] pos The starting position in the `input` string, defaults to `0`
     #
     constructor: (input, pos = 0) ->
-      @input = input
+      @rawInput = input
       @pos = pos
 
     #
@@ -766,10 +778,10 @@ umd this, ->
     # Implicitly uses `@input` passed in as part of constructor.
     #
     split: ->
-      all_parts = @input.split(/(\(|\)|->|\{|\}|\?|[a-zA-Z0-9]*)/)
+      all_parts = @rawInput.split(/(\(|\)|->|\{|\}|\?|[a-zA-Z0-9]*)/)
       parts = []
       for part in all_parts
-        unless part is ''
+        unless part is '' or part is ' '
           parts.push part
       parts
 
@@ -779,6 +791,7 @@ umd this, ->
     # Implicitly uses `@input` passed in as part of constructor.
     #
     parse: ->
+      @input = @split()
       result = undefined
       while @pos < @input.length
         if @input[@pos] is ")" or @input[@pos] is "]" or @input[@pos] is ">"
