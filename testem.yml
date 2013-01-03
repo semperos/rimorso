@@ -9,4 +9,3 @@ launch_in_dev:
   - Firefox
 launch_in_ci:
   - Node
-  - Firefox
