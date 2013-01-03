@@ -314,15 +314,46 @@ describe 'Type checking functions', ->
         (-> fc.restrict(42)).should.throw TypeError
         (-> fc.restrict(/test/)).should.throw TypeError
 
-## Test Parser ##
+  ## Test Parser ##
 
   describe 'Spec parser', ->
 
     before ->
       input = 'add :: Int -> Int -> Int'
-      @output = ['add', ' ', ':', ':', ' ', 'Int', ' ', '->', ' ', 'Int', ' ', '->', ' ', 'Int']
+      @output = ['add', ':', ':', 'Int', '->', 'Int', '->', 'Int']
       @parser = new R.__impl.SpecParser(input)
 
-    it 'should return a function that takes a label and returns a contract', ->
+    it "should split up a type spec string correctly", ->
       splitOutput = @parser.split()
       splitOutput.should.eql @output
+
+    it 'should return a function that takes a label and returns a contract', ->
+      @parser.parse(@input).should.be.a 'function'
+
+  ## Public-facing API ##
+
+  describe 'End-to-end type checking', ->
+    describe 'Numbers', ->
+      describe 'Integers', ->
+
+        it "should accept integers for parameters", ->
+          id = R.T 'id :: Int -> String', (x) -> x; "foo"
+          id(2).should.equal 'foo'
+
+        it "should accept integers for return values", ->
+          answer = R.T 'answer :: 0 -> Int', () -> 42
+          answer().should.equal 42
+
+        it "should fail on non-numeric parameters", ->
+          add = R.T 'add :: Int -> Int -> Int', (a,b) -> a+b
+          (-> add("foo", 42)).should.throw TypeError
+          (-> add(42, "foo")).should.throw TypeError
+
+        it "should fail if the supplied function returns a non-numeric value", ->
+          badAdd = R.T 'badAdd :: Int -> Int -> Int', (a,b) -> '' + a + b
+          (-> badAdd(2,2)).should.throw TypeError
+
+    describe 'Functions that take no arguments (EmptyContract)', ->
+      it "should pass for functions that take no arguments", ->
+        myLog = R.T 'myLog :: 0 -> Unit', () -> return undefined
+        expect(myLog()).to.be.undefined
