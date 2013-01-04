@@ -653,7 +653,7 @@ umd this, ->
       if (not m)
         @label.setReason m, 'Map'
       out = {}
-      for k,v of x
+      for k,v of m
         out[@keyContract.relax k] = @valueContract.relax v
       out
 
