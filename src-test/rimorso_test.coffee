@@ -522,15 +522,39 @@ describe 'Type checking functions', ->
         expect(@undefMe("wow")).to.be.undefined
         expect(@undefMe("foo")).to.equal "bar"
 
-    # TODO:
-    # describe 'Maps (Dictionaries)', ->
+    describe 'Maps (Dictionaries)', ->
 
-    #   it "should accept maps for parameters", ->
+      before ->
+        @stringDict =
+          foo: "bar"
+          baz: "boom"
+        @getIt = R.T 'getIt :: <String> -> String -> String', (m,k) -> m[k]
+        # @todo The following doesn't work with a more complex type scenario,
+        # like: String -> List<String> -> <List<String>>
+        @genIt = R.T 'genIt :: String -> String -> <String>', (s1,s2) ->
+          ret = {}
+          ret[s1] = s2
+          ret
+        @badGenIt = R.T 'badGenIt :: String -> String -> <String>', (s1,s2) -> 42
 
-    #   it "should accept maps for return values", ->
+      it "should accept maps for parameters", ->
+        @getIt(@stringDict, "foo").should.equal "bar"
 
-    #   it "should reject non-map parameters", ->
+      it "should accept maps for return values", ->
+        @genIt("foo", "bar").should.eql {foo: "bar"}
 
-    #   it "should reject non-map return values", ->
+      it "should reject non-map parameters", ->
+        (=> @getIt("foo", "bar")).should.throw TypeError
 
-    #   it "should reject maps that do not have homogenous items", ->
+      it "should reject maps with the wrong value type", ->
+        (=> @getIt({foo: 42}, "foo")).should.throw TypeError
+
+      it "should reject maps that don't have homogenous values", ->
+        (=> @getIt({foo: "bar", baz: 42}, "foo")).should.throw TypeError
+
+      # TODO: It seems like dealing with Map/Dict return values
+      # is not properly supported in Ristretto...
+      #
+      # it "should reject non-map return values", ->
+      #   console.log "What's this?", @badGenIt("foo", "bar")
+      #   (=> @badGenIt("foo", "bar")).should.throw TypeError
