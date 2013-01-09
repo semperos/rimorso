@@ -25,7 +25,10 @@ umd this, ->
   #
 
   #
-  # ### Essential Functions ###
+  # ### JavaScript Core Functions ###
+  #
+  # This section includes "polyfills" for any functions used
+  # in this library, taken from MDN where possible.
   #
 
   #
@@ -148,6 +151,19 @@ umd this, ->
           g()
         else
           curry(g)
+
+  #
+  # This class is used to keep track of things
+  # referred to in Ristretto's codebase as `cryptographicKey`,
+  # used across the {ForAllContract} and {ObjectContract} classes
+  # to keep track of type variable references, I believe.
+  #
+  class Crypto
+    #
+    # This is used by separate components as a counter for
+    # type variable references.
+    #
+    @key: 0
 
   #
   # ### Type Comparison ###
@@ -668,6 +684,106 @@ umd this, ->
     f
 
   #
+  # ### For All Contract ###
+  #
+  # This is used to handle the definition of type variables
+  # in a type specification string.
+  #
+  class ForAllContract extends Contract
+    #
+    # A `forall` contract takes a function label
+    # as well as the body of the `forall` expression
+    # used to define new type variables.
+    #
+    constructor: (label, @body) ->
+      super
+
+    #
+    # Override {Contract#restrict}
+    #
+    restrict: (x) ->
+      lock =
+        key: Crypto.key++
+        type: null
+        ref: 0
+      @body(lock)(@label).restrict x
+
+    #
+    # Override {Contract#relax}
+    #
+    relax: (x) ->
+      lock =
+        key: Crypto.key++
+        type: null
+        ref: 0
+      @body(lock)(@label).relax x
+
+  ForAllContractFactory = (body) ->
+    f = (label) ->
+      new ForAllContract(label, body)
+    f.repr = ->
+      "ForAllContractFactory(#{body})"
+    f
+
+  #
+  # Seal
+  #
+  # @todo See what this is used for
+  #
+  class Seal
+    constructor: (@lock, @value) ->
+
+  #
+  # ### Variable Contract ###
+  #
+  # This is used against the type variables
+  # generated from a `forall` expression
+  # in a type specification string.
+  #
+  class VariableContract extends Contract
+    #
+    # A variable contract requires both a function label
+    # and a lock for the given variable.
+    #
+    constructor: (label, @lock) ->
+
+    #
+    # Override {Contract#restrict}
+    #
+    restrict: (sealedX) ->
+      @lock.ref--
+      if (not sealedX.lock)
+        @label.setReason "The token #{sealedX} caused an unknown type variable error."
+        @fail()
+      else if @lock.key is sealedX.lock.key
+        return sealedX.value
+      else
+        @label.setReason "The token #{sealedX} caused an unknown type variable error."
+
+    #
+    # Override {Contract#relax}
+    #
+    relax: (x) ->
+      # Need to keep a ref count to allow key to be reused
+      if @lock.ref is 0
+        @lock.type = Is.getClass x
+      else if @lock.type isnt Is.getClass(x)
+        @lock.ref = 0
+        @label.setReason "The token #{x} is an illegal type variable"
+        @fail()
+      @lock.ref++
+      new Seal(@lock, x)
+
+  VariableContractFactory = (lock) ->
+    (label) ->
+      new VariableContract(label, lock)
+
+  VariableContractFactoryPlaceholder = (name) ->
+    obj = {}
+    obj.repr = -> "VariableContractFactory(#{name})"
+    obj
+
+  #
   # ### Empty Contract ###
   #
   # For functions that take zero parameters
@@ -702,13 +818,6 @@ umd this, ->
   # For structural comparison of objects
   #
   class ObjectContract extends Contract
-
-  #
-  # Variable contract factory placeholder
-  #
-  # Not sure what this is...
-  #
-  class VariableContractFactoryPlaceholder
 
   #
   # ### Function Contract ###
@@ -1079,9 +1188,12 @@ umd this, ->
         out = @parseHead()
 
         # Inserting a forall for each variable.
-        vars.reverse().forEach (v) ->
-          typeFunc = "function(" + v + ") { return " + out.repr() + "}"
-          typeFunc = eval_("typeFunc = " + typeFunc)
+        for v in vars
+          console.log "VAR IS:", v, "and", out.toString().replace("\n", "")
+          typeFunc = "function(#{v}) { return #{out.repr()}; };"
+          console.log "TYPE FUNC:", typeFunc.replace("\n", "")
+          # @todo Don't do this
+          typeFunc = `eval("typeFunc = " + typeFunc)`
           out = ForAllContractFactory(typeFunc)
 
         return out

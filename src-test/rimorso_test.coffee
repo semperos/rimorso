@@ -558,3 +558,9 @@ describe 'Type checking functions', ->
       # it "should reject non-map return values", ->
       #   console.log "What's this?", @badGenIt("foo", "bar")
       #   (=> @badGenIt("foo", "bar")).should.throw TypeError
+
+    describe 'Type variables', ->
+      it "should allow them to be used with map types", ->
+        lookup = R.T 'lookup :: forall b. <b> -> String -> String', (m, k) -> m[k]
+        obj = foo: "bar"
+        lookup(obj, "foo").should.equal "bar"
